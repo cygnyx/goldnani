@@ -20,3 +20,7 @@ Prior Implementations
 - [node-quadprog](https://github.com/albertosantini/node-quadprog) Javascript.
 - [quadprog_c_json](https://github.com/cygnyx/quadprog_c_json) C.
 - [quadprog](https://github.com/quadprog/quadprog) Cython.
+
+Notes
+=====
+Translated from C to javascript from `quadprog_c_json`.
