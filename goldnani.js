@@ -329,7 +329,7 @@
      *
      * obj    1x1 receives the value of the objective
      *
-     * iact   nx1 vector, receives in the first nact components the 1-based indices of the constraints in the active set.
+     * iact   mx1 vector, receives in the first nact components the 1-based indices of the constraints in the active set.
      *
      * nact   1x1 receives the number of constraints in the active set.
      *
@@ -562,5 +562,89 @@
 	}
     }
 
-    module.exports = {optimize:qpgen2_, vsmall:vsmall};
+    /*
+     * Solve a strictly convex quadratic program:
+     *
+     *  minimize     1/2 x^T G x - a^T x
+     *  subject to   C^T x  = b1 for first meq rows
+     *                     >= b1 for other rows
+     *
+     * Input
+     * -----
+     * G      nxn positive definite matrix when factorized = false
+     *        otherwise R^-1, where R is upper triangular and G = R^T R.
+     *
+     * a      n vector
+     *
+     * C      nxm matrix
+     *
+     * b      m vector
+     *
+     * meq    the number of equality constraints, 0 <= meq <= m.
+     *
+     * factorized   flags G type
+     *
+     * Return value
+     * ------------
+     * An object with:
+     *   optimal        n vector - optimal solution
+     *   unconstrained  n vector - optimal solution without constraints
+     *   lagrange       m vector - Lagrange multipliers
+     *   objective      value at x
+     *   active         active constraints, <= m length
+     *   adds           number of times a constraint was added to active set
+     *   removes        number of times a constraint was removed from active set
+     *
+     * Errors
+     * ------
+     * Problem is infeasible
+     * Matrix is not positive definite
+     *
+     */
+    function optimize(G, a, C, b, meq, factorized) {
+	var n = a.length;
+	var m = b.length;
+	var opt = new Array(n);
+	var unc = a.slice();
+	var l = new Array(m);
+	var obj = new Array(1);
+	var iact = new Array(m);
+	var nact = new Array(1);
+	var iter = new Array(2);
+	var r = n > m ? m : n;
+	var work = new Array(2 * n + 2 * m + r * (r + 5) / 2);
+	var ret;
+	var Gp = new Array(n * n);
+	var Cp = new Array(n * m);
+	var i;
+	var j;
+
+	for (i = 0; i < n; i++)
+	    for (j = 0; j < n; j++)
+		Gp[i * n + j] = G[j][i];
+
+	for (i = 0; i < m; i++)
+	    for (j = 0; j < n; j++)
+		Cp[i * n + j] = C[j][i];
+
+	ret = qpgen2_(Gp, unc, n, opt, l, obj, Cp, b, m, meq, iact, nact, iter, work, factorized);
+
+	switch (ret) {
+	case 1: throw('Problem is infeasible');
+	case 2: throw('Matrix is not positive definite');
+	default: break;
+	}
+
+	return {
+	    optimal: opt,
+	    unconstrained: unc,
+	    lagrange: l,
+	    objective: obj[0],
+	    active: iact.slice(0, nact[0]).map((x) => x-1),
+	    adds: iter[0],
+	    removes: iter[1]
+	};
+    }
+    
+    module.exports = {optimize:optimize, vsmall:vsmall};
 })()

@@ -45,92 +45,62 @@ function qp_from_json(js, problemonly) {
     var i;
     var j;
     
-    p.n = js.G.length;
-    if (p.n != js.G[0].length) {
-	fail("G is not square");
-	return null;
-    }
-    p.G = new Array(p.n * p.n);
-    for (i = 0; i < p.n; i++)
-	for (j = 0; j < p.n; j++)
-	    p.G[i * p.n + j] = js.G[j][i];
+    if (js.G.length != js.G[0].length)
+	throw("G is not square");
+    p.G = js.G;
 
     p.a = js.a;
-    if (p.n != p.a.length) {
-	fail("a is not like G");
-	return null;
-    }
-
+    if (p.G.length != p.a.length)
+	throw("a is not like G");
 
     if (js.C == null) {
-	p.C = [];
-	p.m = 0;
+	p.C = [[]];
     } else {
-	p.m = js.C[0].length;
-	if (p.n != js.C.length) {
-	    fail("C is not like G");
-	    return null;
-	}
+	if (p.G.length != js.C.length)
+	    throw("C is not like G");
+	p.C = js.C;
     }
-
-    p.C = new Array(p.n * p.m);
-    for (i = 0; i < p.m; i++)
-	for (j = 0; j < p.n; j++)
-	    p.C[i * p.n + j] = js.C[j][i];
 
     p.b = js.b;
     if (p.b == null)
 	p.b = [];
-    if (p.m != p.b.length) {
-	fail("b is not like C");
-	return null;
-    }
+    else if (p.C[0].length != p.b.length)
+	throw("b is not like C");
 
     p.meq = js.meq;
     p.factorized = js.factorized;
 
     p.opt = js.solution;
     if (problemonly || p.opt == null)
-	p.opt = zero(p.n);
-    if (p.n != p.opt.length) {
-	fail("opt is not like G");
-	return null;
-    }
+	p.opt = zero(p.G.length);
+    if (p.G.length != p.opt.length)
+	throw("opt is not like G");
 
     p.value = js.value;
     
     p.unc = js["unconstrained.solution"];
     if (problemonly || p.unc == null)
-	p.unc = zero(p.n);
-    if (p.n != p.unc.length) {
-	fail("unc is not like G");
-	return null;
-    }
+	p.unc = zero(p.G.length);
+    if (p.G.length != p.unc.length)
+	throw("unc is not like G");
 
     p.l = js.Lagrangian;
     if (problemonly || p.l == null)
-	p.l = zero(p.m);
-    if (p.m != p.l.length) {
-	fail("l is not like b");
-	return null;
-    }
+	p.l = zero(p.C[0].length);
+    if (p.C[0].length != p.l.length)
+	throw("l is not like b");
 
     p.iter = js.iterations;
     if (problemonly || p.iter == null)
 	p.iter = zero(2);
-    if (2 != p.iter.length) {
-	fail("iter is not 2");
-	return null;
-    }
+    if (2 != p.iter.length)
+	throw("iter is not 2");
 
-    p.iact = js.iact;
+    p.iact = js.iact.map((x)=>x-1);
     if (problemonly || p.iact == null)
-	p.iact = zero(p.m);
-    p.nact = p.iact.length;
-    if (p.nact > p.m) {
-	fail("iact too big");
-	return null;
-    }
+	p.iact = zero(p.C[0].length);
+    if (p.iact.length > p.C[0].length)
+	throw("iact too big");
 
     return p;
 }
@@ -176,22 +146,22 @@ function samed0(p, q) {
 function qp_same(p, q) {
     var minor = 0;
 
-    if (samed1(p.opt, q.opt, p.n) == 0)
+    if (samed1(p.opt, q.opt, p.opt.length) == 0)
 	return [false, minor];
 
-    if (samed1(p.unc, q.unc, p.n) == 0)
+    if (samed1(p.unc, q.unc, p.unc.length) == 0)
 	return [false, minor];
 
     if (samed0(p.value, q.value) == 0)
 	return [false, minor];
 
-    if (samed1(p.l, q.l, p.m) == 0)
+    if (samed1(p.l, q.l, p.l.length) == 0)
 	minor++;
 
     if (samei1(p.iter, q.iter, 2) == 0)
 	minor++;
     
-    if (samei1(p.iact, q.iact, p.niact) == 0)
+    if (samei1(p.iact, q.iact, p.iact.length) == 0)
 	minor++;
 
     return [true, minor];
@@ -228,22 +198,22 @@ function qptest(p) {
     var nact = [0];
     var r;
     var work;
-    var iact = zero(qp.m);
+    var iact = zero(qp.C[0].length);
     
-    if (qp == null)
-	return [false, -1];
-
-    r = qp.n > qp.m ? qp.m : qp.n;
-    work = zero(2*qp.n + 2*qp.m + r*(r+5)/2);
+    r = qp.G.length > qp.C[0].length ? qp.C[0].length : qp.G.length;
+    work = zero(2*qp.G.length + 2*qp.C[0].length + r*(r+5)/2);
 
     if (verbose)
 	qp_info("original", op);
 
-    ret = gn.optimize(qp.G, qp.a, qp.n, qp.opt, qp.l, obj, qp.C, qp.b, qp.m, qp.meq, iact, nact, qp.iter, work, qp.factorized);
-    qp.value = obj[0];
-    qp.nact = nact[0];
-    qp.iact = iact.slice(0, qp.nact);
-    qp.unc = qp.a;
+    ret = gn.optimize(qp.G, qp.a, qp.C, qp.b, qp.meq, qp.factorized);
+
+    qp.opt = ret.optimal;
+    qp.value = ret.objective;
+    qp.l = ret.lagrange;
+    qp.iact = ret.active;
+    qp.unc = ret.unconstrained;
+    qp.iter = [ret.adds, ret.removes];
     if (verbose)
 	qp_info("current", qp);
 
@@ -252,14 +222,16 @@ function qptest(p) {
 
 function setoption(a) {
     var al = a.length;
-    if (al < 2) {
-	fail("Bad option", a);
-	process.exit(1);
-    }
+    var bad = "Bad option " + a;
+    
+    if (al < 2)
+	throw(bad);
+
     switch (a.substr(1,1)) {
     case 'h':
 	note("node", process.argv[1], "[-h] [-v#] jsonfile ...");
-	process.exit(1);
+	throw('help');
+	break;
     case 'v':
 	if (al == 2) verbose = 1;
 	else switch(a.substr(2,1)) {
@@ -267,12 +239,11 @@ function setoption(a) {
 	    case '1': verbose = 1; break;
 	    case '2': verbose = 2; break;
 	    case '3': verbose = 3; break;
-	    default: fail("Bad option", a); process.exit(1);
+	    default: throw(bad); break;
 	}
 	break;
     default:
-	fail("Bad option", a);
-	process.exit(1);
+	throw(bad);
 	break;
     }
 }
@@ -293,7 +264,14 @@ function main() {
     for (i = 2; i < process.argv.length; i++) {
 	a = process.argv[i];
 	if (options && a.substr(0, 1) == '-') {
-	    setoption(a);
+	    try {
+		setoption(a);
+	    } catch(e) {
+		if (e != 'help')
+		    fail(e);
+		status = 1;
+		break;
+	    }
 	    continue;
 	} else
 	    options = false;
@@ -305,37 +283,42 @@ function main() {
 	    chars = fs.readFileSync(a);
 	} catch (e) {
 	    fail("Cannot read", a);
-	    process.exit(1);
+	    status = 1;
+	    break;
 	}
 	try {
 	    problem = JSON.parse(chars);
 	} catch (e) {
 	    fail("Cannot parse", a);
-	    process.exit(1);
+	    status = 1;
+	    break;
 	}
 	if (verbose) {
 	    note("source:", problem.source);
 	    note("notes:", problem.notes);
 	}
 
-	result = qptest(problem);
+	try {
+	    result = qptest(problem);
+	} catch (e) {
+	    fail(e);
+	    status = 1;
+	    break;
+	}
 	if (result[0] == false) {
-	    if (result[1] == -1)
-		fail("Bad configuration in", a);
-	    else
-		fail(a);
+	    fail(a);
 	    status = 1;
 	    break;
 	}
 
 	if (result[1] > 0) {
-	    note("PASS", a, "minor", result[1], result[1] > 1 ? "differences" : "difference");
+	    pass(a, "minor", result[1], result[1] > 1 ? "differences" : "difference");
 	} else
-	    note("PASS", a);
+	    pass(a);
     }
 
     if (status)
-	fail("Finish:", "FAILED");
+	fail("Finish");
     else
 	note("Finish:", "SUCCESS: " + (Date.now() - start_time)/1000. );
 }
