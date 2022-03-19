@@ -17,10 +17,15 @@ strictly convex quadratic programs. Mathematical Programming, 27, 1–33.
 Prior Implementations
 =====================
 - [quadprog](http://cran.r-project.org/web/packages/quadprog/) Fortran.
-- [node-quadprog](https://github.com/albertosantini/node-quadprog) Javascript.
-- [quadprog_c_json](https://github.com/cygnyx/quadprog_c_json) C.
+- [node-quadprog](https://github.com/albertosantini/node-quadprog) Javascript - using 1 indexing.
 - [quadprog](https://github.com/quadprog/quadprog) Cython.
+- [quadprog_c_json](https://github.com/cygnyx/quadprog_c_json) C.
 
 Notes
 =====
 Translated from C to javascript from `quadprog_c_json`.
+
+Removed pointers by adding offsets.
+References like x[i] become x[xo+i] where x is the array and xo is the offset
+This effected the work[] the most.
+
