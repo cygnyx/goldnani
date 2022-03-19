@@ -29,3 +29,8 @@ Removed pointers by adding offsets.
 References like x[i] become x[xo+i] where x is the array and xo is the offset
 This effected the work[] the most.
 
+Run
+===
+```
+node quadprog.js [-h] [-v] jsonfile ...
+```
