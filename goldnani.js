@@ -149,13 +149,11 @@
 
 	for (i = n - 1; i >= r; i--) {
             // On this iteration, reduce a[i] to zero.
-
             if (a[ao+i] == 0.)
 		continue;
 
             if (a[ao+i - 1] == 0.) {
 		// Simply swap
-
 		a[ao+i - 1] = a[ao+i];
 		for (j = 0; j < n; j++) {
                     temp = Q[j + (i - 1) * n];

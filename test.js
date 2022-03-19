@@ -6,13 +6,16 @@ var gn = require('./goldnani');
 var os = require('os');
 var fs = require('fs');
 
-var verbose;
+var verbose = false;
 
 var vsmall = gn.vsmall;
 
 function zero(n) {
-    var r = new Array(n);
+    var r;
     var i;
+    
+    r = new Array(n);
+
     for (i = 0; i < n; i++)
 	r[i] =  0.0;
     return r;
@@ -50,7 +53,7 @@ function qp_from_json(js, problemonly) {
     p.G = new Array(p.n * p.n);
     for (i = 0; i < p.n; i++)
 	for (j = 0; j < p.n; j++)
-	    p.G[j * p.n + i] = js.G[i][j];
+	    p.G[i * p.n + j] = js.G[j][i];
 
     p.a = js.a;
     if (p.n != p.a.length) {
@@ -275,6 +278,7 @@ function setoption(a) {
 }
 
 function main() {
+    var start_time = Date.now();
     var i;
     var a;
     var d;
@@ -333,7 +337,7 @@ function main() {
     if (status)
 	fail("Finish:", "FAILED");
     else
-	note("Finish:", "SUCCESS");
+	note("Finish:", "SUCCESS: " + (Date.now() - start_time)/1000. );
 }
 
     module.exports = {main:main, note:note};
